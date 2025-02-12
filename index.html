@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agora Live Streaming</title>
+  <script src="https://cdn.agora.io/sdk/web/AgoraRTCSDK-4.7.0.js"></script>
+</head>
+<body>
+  <div id="video-stream" style="width: 100%; height: 100%"></div>
+
+  <script>
+    // Agora Configuration
+    const appID = "<YOUR_AGORA_APP_ID>";
+    const channelName = "test_channel";
+    const token = "<YOUR_AGORA_TOKEN>"; // Optional if you're using token-based authentication
+
+    let client = AgoraRTC.createClient({ mode: "live", codec: "vp8" });
+    let localStream;
+
+    // Initialize Agora client
+    client.init(appID, () => {
+      console.log("AgoraRTC client initialized.");
+    }, (err) => {
+      console.error("AgoraRTC client initialization failed", err);
+    });
+
+    // Join the channel
+    client.join(token, channelName, null, (uid) => {
+      console.log("User " + uid + " join channel successfully");
+      // Create local stream
+      localStream = AgoraRTC.createStream({
+        streamID: uid,
+        audio: true,
+        video: true,
+        screen: false
+      });
+      localStream.init(() => {
+        console.log("Local stream initialized");
+        // Play local stream
+        localStream.play("video-stream");
+        // Publish local stream to channel
+        client.publish(localStream, (err) => {
+          console.error("Publish local stream failed", err);
+        });
+      }, (err) => {
+        console.error("Local stream initialization failed", err);
+      });
+    }, (err) => {
+      console.error("Join channel failed", err);
+    });
+
+    // Subscribe to remote stream (other users)
+    client.on("stream-added", function(evt) {
+      var stream = evt.stream;
+      console.log("Stream added: " + stream.getId());
+      client.subscribe(stream, (err) => {
+        console.error("Subscribe stream failed", err);
+      });
+    });
+
+    client.on("stream-subscribed", function(evt) {
+      var remoteStream = evt.stream;
+      remoteStream.play("video-stream");
+    });
+  </script>
+</body>
+</html>
